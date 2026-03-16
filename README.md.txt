@@ -7,7 +7,6 @@ Primer design for specific user-input genome sequences is not currently supporte
 
 -----------------------------------------------------------------------
 Features:
-
 -Automatic genome download from NCBI
 -Local genome caching to avoid repeated downloads
 -Random genome region sampling
@@ -20,7 +19,6 @@ Features:
 
 -----------------------------------------------------------------------
 Usage
-
 Run the pipeline from the repository root:
 	python run_pipeline.py
 
@@ -46,7 +44,6 @@ Nested-PCR-Assay-Design
 
 -----------------------------------------------------------------------
 File and Folder Descriptions
-
 config.yaml
 	Pipeline configuration including organisms and primer settings.
 
@@ -64,7 +61,6 @@ Designed Assays/Assays by Organism
 
 -----------------------------------------------------------------------
 Installation
-
 Clone the repository:
 	git clone https://github.com/ajschmeltzer/Nested-PCR-Assay-Design
 	cd Nested-PCR-Assay-Design
@@ -79,7 +75,6 @@ Dependencies include:
 
 -----------------------------------------------------------------------
 Configuration
-
 All pipeline settings are controlled through config.yaml.
 
 Example config.yaml:
@@ -93,18 +88,15 @@ Example config.yaml:
 		email: your_email@example.com
 
 	primer3:
-
 		outer:
 			PRIMER_OPT_SIZE: 20
 			PRIMER_MIN_SIZE: 18
 			PRIMER_MAX_SIZE: 25
 			PRIMER_PRODUCT_SIZE_RANGE: [[230, 400]]
-
 		inner:
 			PRIMER_PRODUCT_SIZE_RANGE: [[120, 200]]
 -----------------------------------------------------------------------
 Organisms
-
 The ORGANISMS section is a dictionary of organism names and NCBI genome accessions.
 
 Format:
@@ -128,7 +120,6 @@ info.txt
 
 -----------------------------------------------------------------------
 File Descriptions
-
 *_primers.txt
 	Human-readable primer report.
 
@@ -146,7 +137,6 @@ info.txt
 
 -----------------------------------------------------------------------
 Genome Storage
-
 Downloaded genomes are stored locally in:
 	data/genomes
 
@@ -154,17 +144,14 @@ Genomes are downloaded once and reused for future runs.
 
 -----------------------------------------------------------------------
 Requirements
-
 -Python 3.9 or newer
 -Internet connection for initial genome download
 -Primer3 installed via primer3-py
 -----------------------------------------------------------------------
 Future Improvements
-
 -Primer design for user defined genome regions
 -BLAT specificity checking
 
 -----------------------------------------------------------------------
 License
-
 MIT License
