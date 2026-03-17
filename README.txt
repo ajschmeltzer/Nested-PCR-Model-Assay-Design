@@ -141,6 +141,7 @@ Requirements
 Future Improvements
 -Primer design for user defined genome regions
 -BLAT specificity checking
+-Masking of repeated genome regions
 -----------------------------------------------------------------------
 License
 MIT License
