@@ -3,7 +3,6 @@ PCR Assay Designer
 Automated nested PCR assay design pipeline built with Python and Primer3.
 The pipeline downloads genomes from NCBI, randomly samples genome regions, and designs two-level nested PCR assays with annotated outputs.
 
-Primer design for specific user-input genome sequences is not currently supported. 
 -----------------------------------------------------------------------
 Features:
 -Automatic genome download from NCBI
