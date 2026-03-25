@@ -43,6 +43,8 @@ Nested-PCR-Model-Assay-Design
 │
 ├── config.yaml
 ├── run_pipeline.py
+├── requirements.txt
+├── README.txt
 │
 ├── src
 │   └── assay_pipeline.py
