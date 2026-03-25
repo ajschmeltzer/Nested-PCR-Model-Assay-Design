@@ -6,6 +6,7 @@ from Bio import Entrez, SeqIO
 import primer3
 import csv
 import yaml
+import shutil
 
 # -----------------------------
 # Base folders
@@ -440,7 +441,9 @@ def batch_assay_pipeline(
                     print(f"Attempt {attempt}: Inner primers not found, retrying...")
 
                     #Removing directory for failed assay design
-                    assay_folder.rmdir()
+                    #assay_folder.rmdir() #only removes the directory. Does not work if files are present within the folder
+                    if assay_folder.exists():
+                        shutil.rmtree(assay_folder)
 
                     continue
 
