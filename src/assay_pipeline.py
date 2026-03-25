@@ -85,7 +85,7 @@ class NCBISequenceFetcher:
             safe_id = re.sub(r'[:<>"/\\|?*]', '_', accession) #Need to remove the ":" from the name of the NCIB genome range
             return genome_path, safe_id
 
-        print(f"Fetching full genome from NCBI (hard-masked): {accession} ...")
+        print(f"Fetching full genome from NCBI: {accession} ...")
         handle = Entrez.efetch(
             db="nuccore",
             id=accession,
