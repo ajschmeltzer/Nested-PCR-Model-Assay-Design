@@ -39,7 +39,7 @@ The pipeline will:
 	-Export results
 -----------------------------------------------------------------------
 Project Structure
-Nested-PCR-Assay-Design
+Nested-PCR-Model-Assay-Design
 │
 ├── config.yaml
 ├── run_pipeline.py
