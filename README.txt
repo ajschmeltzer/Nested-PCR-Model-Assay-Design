@@ -101,10 +101,10 @@ Example:
 -----------------------------------------------------------------------
 Output
 Generated assays are stored in:
-	data/organisms
+	Designed Assays/Assays by Organism/
 
 Each assay folder contains:
-info.txt
+	info.txt
 	*_primers.txt
 	*_primers.csv
 	*.ape
@@ -128,7 +128,7 @@ info.txt
 -----------------------------------------------------------------------
 Genome Storage
 Downloaded genomes are stored locally in:
-	data/genomes
+	Designed Assays/Genomes
 
 Genomes are downloaded once and reused for future runs.
 -----------------------------------------------------------------------
