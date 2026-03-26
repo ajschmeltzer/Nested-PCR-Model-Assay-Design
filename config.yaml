@@ -4,17 +4,19 @@
 # Organisms to process
 # -----------------------------
 organisms:
-  E_coli: NC_000913.3
-  #Human_chr10: NC_000010.11
+  E_coli: NC_000913.3 #entire e. coli genome
+  E_coli_thrC: NC_000913.3:3734-5020 #Specific region of e. coli genome
+  Human_chr10: NC_000010.11 #Entire human chromosome 10
   # Add more as needed
-  # Format: <Organism Name>: <NCBI accession>
+  # Format: <Organism Name>: <NCBI accession>:<optional specific region>
 
 # -----------------------------
 # General pipeline settings
 # -----------------------------
 pipeline:
-  assays_per_org: 10
-  region_length: 10000
+  #1 assay will be designed in a specified region. Example: 1 assay for the E_coli_thrC: NC_000913.3:3734-5020 region
+  assays_per_org: 10 #number of assays designed for non-specified regions. Example: 10 assays designed for E_coli: NC_000913.3
+  region_length: 10000 #region length for non-specified regions Example: 10000 bp sections within E_coli: NC_000913.3
   email: your_email@example.com
 
 # -----------------------------
