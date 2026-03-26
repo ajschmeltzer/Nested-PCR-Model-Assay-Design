@@ -7,6 +7,7 @@ import primer3
 import csv
 import yaml
 import shutil
+from io import StringIO
 
 # -----------------------------
 # Base folders
@@ -64,6 +65,34 @@ def revcomp(seq):
     complement = str.maketrans("ATCGatcg", "TAGCtagc")
     return seq.translate(complement)[::-1]
 
+#Parsing genome region from user input
+def parse_accession_input(input_string):
+    """
+    Supports input formats:
+    - NC_000913.3
+    - NC_000913.3:3734-5020
+    """
+    if ":" in input_string and "-" in input_string:
+        accession, coords = input_string.split(":")
+        start, end = map(int, coords.split("-"))
+
+        if start >= end:
+            raise ValueError(f"Invalid region: {input_string}")
+
+        return {
+            "accession": accession,
+            "start": start,
+            "end": end,
+            "is_region": True
+        }
+    else:
+        return {
+            "accession": input_string,
+            "start": None,
+            "end": None,
+            "is_region": False
+        }
+
 # -----------------------------
 # NCBI fetcher
 # -----------------------------
@@ -72,18 +101,30 @@ def revcomp(seq):
 
 class NCBISequenceFetcher:
     def __init__(self, email, genome_dir=None):
-        Entrez.email = email #entrez requires a user email to access the database
-        #Making folder to store specific genomes in
+        Entrez.email = email  # entrez requires a user email
         if genome_dir is None:
             genome_dir = genome_folder
         self.genome_dir = Path(genome_dir)
         self.genome_dir.mkdir(parents=True, exist_ok=True)
 
+    #Genome from config input for specific region and random
+    def fetch_from_input(self, input_string):
+        parsed = parse_accession_input(input_string)
+
+        if parsed["is_region"]:
+            return self.fetch_region(
+                parsed["accession"],
+                parsed["start"],
+                parsed["end"]
+            ), parsed
+        else:
+            return self.fetch_genome(parsed["accession"]), parsed
+
     def fetch_genome(self, accession):
         genome_path = self.genome_dir / f"{accession}.fasta"
         if genome_path.exists():
             print(f"Genome already downloaded: {genome_path.name}")
-            safe_id = re.sub(r'[:<>"/\\|?*]', '_', accession) #Need to remove the ":" from the name of the NCIB genome range
+            safe_id = re.sub(r'[:<>"/\\|?*]', '_', accession)
             return genome_path, safe_id
 
         print(f"Fetching genome from NCBI: {accession} ...")
@@ -92,13 +133,45 @@ class NCBISequenceFetcher:
             id=accession,
             rettype="fasta",
             retmode="text",
-            #mask="hard"  # Downloads hard masked 'N' genome. This doesn't actually work. Will need a different solution for masking
         )
         record = SeqIO.read(handle, "fasta")
+        handle.close()
+
         SeqIO.write(record, genome_path, "fasta")
         safe_id = re.sub(r'[:<>"/\\|?*]', '_', accession)
         print(f"Genome saved: {genome_path}")
         return genome_path, safe_id
+
+    # Fetch a specific region if provided
+    def fetch_region(self, accession, start, end):
+        region_name = f"{accession}_{start}_{end}"
+        region_path = self.genome_dir / f"{region_name}.fasta"
+
+        if region_path.exists():
+            print(f"Region already downloaded: {region_path.name}")
+            safe_id = re.sub(r'[:<>"/\\|?*]', '_', region_name)
+            return region_path, safe_id
+
+        print(f"Fetching region {accession}:{start}-{end} from NCBI...")
+
+        handle = Entrez.efetch(
+            db="nuccore",
+            id=accession,
+            rettype="fasta",
+            retmode="text",
+            seq_start=start,
+            seq_stop=end
+        )
+
+        record = SeqIO.read(handle, "fasta")
+        handle.close()
+
+        SeqIO.write(record, region_path, "fasta")
+
+        safe_id = re.sub(r'[:<>"/\\|?*]', '_', region_name)
+        print(f"Region saved: {region_path}")
+
+        return region_path, safe_id
 
 # -----------------------------
 # ApE file writer
@@ -371,34 +444,39 @@ def batch_assay_pipeline(
     inner_primer_settings
 ):
 
-    # Settings from the config file
     outer_settings = outer_primer_settings or {}
     inner_settings = inner_primer_settings or {}
 
-    #Calls the genome fetcher class
     fetcher = NCBISequenceFetcher(email=email)
 
-    #Iterates through the organisms in the config file
-    for org_name, accession in organisms.items():
+    for org_name, accession_input in organisms.items():
 
         print(f"\nProcessing organism: {org_name}")
 
-        #Fetching genomes and storing them in the genome folder
-        genome_path, safe_id = fetcher.fetch_genome(accession)
+        # Parse config input
+        (genome_path, safe_id), parsed = fetcher.fetch_from_input(accession_input)
+        accession = parsed["accession"]
+        region_start = parsed["start"]
+        region_end = parsed["end"]
+        is_region = parsed["is_region"]
 
-        #Creating specific organsim folder
+        # Creating organism folder
         org_folder = output_folder / f"{safe_id}_{org_name}"
         org_folder.mkdir(exist_ok=True)
 
-        #Opening the fasta sequence file
         record = next(SeqIO.parse(genome_path, "fasta"))
-
         genome_seq = str(record.seq)
         genome_len = len(genome_seq)
 
-        #Creates specified number of assays for each organism
+        # Prevent redundant assays for fixed region. Will only generate 1 assay per fixed region
+        if is_region:
+            assays_to_generate = 1
+        else:
+            assays_to_generate = assays_per_org
+
         next_i = get_next_assay_number(org_folder, safe_id)
-        for i in range(next_i, next_i + assays_per_org):
+
+        for i in range(next_i, next_i + assays_to_generate):
 
             attempt = 0
 
@@ -406,24 +484,35 @@ def batch_assay_pipeline(
 
                 attempt += 1
 
-                #Assays are designed for random regions of the genome. A random number generator is used to pick the regions
-                start = random.randint(0, genome_len - region_length) 
-                end = start + region_length
+                # Conditional region logic for user specified region
+                if is_region:
+                    # Use the full fetched region directly
+                    assay_seq = genome_seq
+                    start = region_start
+                    end = region_end
+                else:
+                    # Random region logic
+                    start = random.randint(0, genome_len - region_length)
+                    end = start + region_length
+                    assay_seq = genome_seq[start:end]
 
-                assay_seq = genome_seq[start:end]
-
-                #Creating specific assay folder
                 assay_folder = org_folder / f"{safe_id}_Assay_{i:03d}"
                 assay_folder.mkdir(exist_ok=True)
 
-                #Info file of the genome location is recorded
                 info_file = assay_folder / "info.txt"
 
                 with open(info_file, "w") as f:
                     f.write(f"Organism: {org_name}\n")
                     f.write(f"Genome accession: {accession}\n")
                     f.write(f"Genome location: {start}-{end}\n")
-                    f.write(f"Region length: {region_length}\n")
+
+                    # Clarify behavior
+                    if is_region:
+                        f.write("Mode: user-specified genome region\n")
+                    else:
+                        f.write("Mode: random genome region\n")
+
+                    f.write(f"Region length: {len(assay_seq)}\n")
 
                 assay_safe_id = f"{safe_id}_{start}_{end}"
 
@@ -436,12 +525,9 @@ def batch_assay_pipeline(
                         inner_settings
                     )
 
-                #If an assay design fails
                 except KeyError:
                     print(f"Attempt {attempt}: Inner primers not found, retrying...")
 
-                    #Removing directory for failed assay design
-                    #assay_folder.rmdir() #only removes the directory. Does not work if files are present within the folder
                     if assay_folder.exists():
                         shutil.rmtree(assay_folder)
 
@@ -453,8 +539,7 @@ def batch_assay_pipeline(
                 )
 
                 break
-            
-            #If no assays can be designed within the max number of attempts
+
             else:
                 print(
                     f"Warning: Could not generate assay {i:03d} "
